@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Об авторе проекта{% endblock %}
+{% block content %}
+    {% load static %}
+    <h1>Привет, я автор</h1>
+    <p>
+        - Вы работу ищите?<br>
+        - Нет, только <a href="https://hh.ru/resume/3918a4aaff0643c5890039ed1f707162687048">резюме</a> показываю.<br>
+        - Красивое...
+    </p>
+    <p>
+        Надеюсь, тебя повеселит это<br>
+        <img src="{% static 'img/memes.jpg' %}" alt="">
+    </p>
+{% endblock %}
