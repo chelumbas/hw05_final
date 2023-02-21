@@ -17,11 +17,12 @@ def get_page_objects(object_list, request):
 
 @cache_page(timeout=20, key_prefix='index_page')
 def index(request):
-    posts = Post.objects.all()
+    posts = Post.objects.select_related('group', 'author').all()
     page_obj = get_page_objects(posts, request)
     context = {
         'title': 'Последние обновления на сайте',
-        'page_obj': page_obj
+        'page_obj': page_obj,
+        'index': True
     }
     return render(request, 'posts/index.html', context)
 
@@ -41,7 +42,9 @@ def profile(request, username):
     author = get_object_or_404(User, username=username)
     posts = author.posts.all()
     page_obj = get_page_objects(posts, request)
-    following = Follow.objects.filter(author=author)
+    following = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user, author=author
+    ).exists()
     context = {
         'author': author,
         'page_obj': page_obj,
@@ -63,7 +66,7 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None, files=request.FILES or None)
     if not form.is_valid():
         return render(request, 'posts/create_post.html', {'form': form})
     post = form.save(commit=False)
@@ -113,6 +116,7 @@ def follow_index(request):
     context = {
         'title': 'Избранные авторы',
         'page_obj': page_obj,
+        'follow': True
     }
     return render(request, 'posts/follow.html', context)
 

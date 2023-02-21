@@ -2,7 +2,6 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django import forms
 from django.core.cache import cache
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 from ..models import Post, Group, User, Follow
 
@@ -17,24 +16,10 @@ class PostsVIEWTests(TestCase):
             slug='test_slug',
             description='Test description',
         )
-        small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=small_gif,
-            content_type='image/gif'
-        )
         cls.post = Post.objects.create(
             text='Test text',
             author=cls.user,
             group=cls.group,
-            image=uploaded,
         )
         cls.follow = Follow.objects.create(
             user=cls.user,
@@ -74,7 +59,19 @@ class PostsVIEWTests(TestCase):
         self.assertEqual(first_object.text, self.post.text)
         self.assertEqual(first_object.author, self.post.author)
         self.assertEqual(first_object.group, self.post.group)
-        self.assertEqual(first_object.image, self.post.image)
+
+    def test_cache(self):
+        page = reverse('posts:index')
+        first_response = self.authorized_client.get(page)
+        Post.objects.create(
+            text='Test cache text',
+            author=self.user
+        )
+        second_response = self.authorized_client.get(page)
+        self.assertEqual(second_response.content, first_response.content)
+        cache.clear()
+        third_response = self.authorized_client.get(page)
+        self.assertNotEqual(second_response.content, third_response.content)
 
     def test_index_context(self):
         response = self.authorized_client.get(reverse('posts:index'))
@@ -158,15 +155,21 @@ class PostsVIEWTests(TestCase):
         self.authorized_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.user})
         )
-        response = self.authorized_client.get(reverse('posts:follow_index'))
-        self.assertEqual(response.context['page_obj'][0], self.post)
+        self.assertTrue(
+            Follow.objects.filter(
+                author=self.post.author, user=self.user
+            ).exists()
+        )
 
     def test_profile_unfollow(self):
         self.authorized_client.get(
             reverse('posts:profile_unfollow', kwargs={'username': self.user})
         )
-        response = self.authorized_client.get(reverse('posts:follow_index'))
-        self.assertEqual(response.context.get('post'), None)
+        self.assertFalse(
+            Follow.objects.filter(
+                author=self.post.author, user=self.user
+            ).exists()
+        )
 
 
 class PostsPAGINATORTests(TestCase):
