@@ -87,11 +87,15 @@ class PostModelTest(TestCase):
         self.assertEqual(str(group), group.title)
 
     def test_comment_verbose_name(self):
+        comment_verbose_name = 'Текст'
+        comment_help_text = 'Текст комментария'
         self.assertEqual(
-            self.comment._meta.get_field('text').verbose_name, 'Текст'
+            self.comment._meta.get_field('text').verbose_name,
+            comment_verbose_name
         )
         self.assertEqual(
-            self.comment._meta.get_field('text').help_text, 'Текст комментария'
+            self.comment._meta.get_field('text').help_text,
+            comment_help_text
         )
 
     def test_comment_object_names(self):

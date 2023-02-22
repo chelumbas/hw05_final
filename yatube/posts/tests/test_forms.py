@@ -47,9 +47,13 @@ class PostsFORMSTest(TestCase):
             content=image,
             content_type='image/png'
         )
+        post_fields = {
+            'text': 'Test new post',
+            'image': uploaded
+        }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
-            data={'text': 'Test new post', 'image': uploaded},
+            data=post_fields,
             follow=True
         )
         self.assertRedirects(
@@ -58,28 +62,33 @@ class PostsFORMSTest(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(
             Post.objects.filter(
-                text='Test new post',
-                image='posts/new_file.png'
+                text=post_fields['text'],
+                image=f'posts/{post_fields["image"]}'
             ).exists()
         )
 
     def test_success_edit_post(self):
+        new_text = 'Test new text'
+        posts_count = Post.objects.count()
         response = self.authorized_client.post(
             reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
-            data={'text': 'Test new text'},
+            data={'text': new_text},
             follow=True,
         )
+        self.assertEqual(Post.objects.count(), posts_count)
+        self.assertFalse(Post.objects.filter(text=self.post.text).exists())
+        self.assertTrue(Post.objects.filter(text=new_text).exists())
         self.assertRedirects(
             response,
             reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
         )
-        self.assertTrue(Post.objects.filter(text='Test new text').exists())
 
     def test_comment(self):
+        comment = 'Test comment'
         comments_count = Comment.objects.count()
         response = self.authorized_client.post(
             reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
-            data={'text': 'comment', 'post': self.post, 'author': self.user},
+            data={'text': comment},
             follow=True,
         )
         self.assertRedirects(
@@ -88,5 +97,5 @@ class PostsFORMSTest(TestCase):
         )
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertTrue(
-            Comment.objects.filter(text='comment', author=self.user).exists()
+            Comment.objects.filter(text=comment, author=self.user).exists()
         )
